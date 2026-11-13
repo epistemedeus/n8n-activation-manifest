@@ -17,6 +17,9 @@
 //   --json               print the report as JSON
 //   --page-size <n>      workflows per list request (default 100, at most 250)
 //
+// A call whose connection drops before an answer came is tried again, up to
+// three more times.
+//
 // The API key comes from N8N_API_KEY. Scopes: workflow:list, workflow:activate,
 // workflow:deactivate.
 //
@@ -205,13 +208,27 @@ function parse(argv) {
   return args;
 }
 
+// fetch, tried again when the connection drops before an answer came (n8n
+// closing an idle keep-alive connection, a proxy restart). A timeout or any
+// HTTP answer is not tried again. Publishing or unpublishing twice ends in the
+// same state, so repeating a call whose answer got lost is safe.
+export async function request(url, init = {}, attempts = 4) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(url, { ...init, signal: AbortSignal.timeout(60_000) });
+    } catch (error) {
+      if (error?.name === 'TimeoutError' || error?.name === 'AbortError' || attempt >= attempts) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 500 * 2 ** (attempt - 1)));
+    }
+  }
+}
+
 function client(url, key) {
   const call = async (method, path, body) => {
-    const response = await fetch(`${url}/api/v1${path}`, {
+    const response = await request(`${url}/api/v1${path}`, {
       method,
       headers: { 'x-n8n-api-key': key, accept: 'application/json', ...(body ? { 'content-type': 'application/json' } : {}) },
       body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(60_000),
     });
     const text = await response.text();
     let json = null;
@@ -242,13 +259,13 @@ function client(url, key) {
 // Not part of the public API: it is what the editor itself calls.
 async function session(url, email, password) {
   const headers = { 'browser-id': 'apply-manifest', 'content-type': 'application/json' };
-  const login = await fetch(`${url}/rest/login`, { method: 'POST', headers, body: JSON.stringify({ emailOrLdapLoginId: email, password }), signal: AbortSignal.timeout(60_000) });
+  const login = await request(`${url}/rest/login`, { method: 'POST', headers, body: JSON.stringify({ emailOrLdapLoginId: email, password }) });
   if (login.status !== 200) throw new Error(`login for --check-triggers answered HTTP ${login.status}`);
   const cookie = login.headers.getSetCookie().map((value) => value.split(';')[0]).join('; ');
   return async (id, waitSeconds) => {
     const deadline = Date.now() + waitSeconds * 1000;
     for (;;) {
-      const response = await fetch(`${url}/rest/workflows/${encodeURIComponent(id)}/publication-status`, { headers: { ...headers, cookie }, signal: AbortSignal.timeout(60_000) });
+      const response = await request(`${url}/rest/workflows/${encodeURIComponent(id)}/publication-status`, { headers: { ...headers, cookie } });
       if (response.status !== 200) return { status: `unknown (HTTP ${response.status})`, errors: [] };
       const { data } = await response.json();
       if (data.status !== 'in_progress' || Date.now() >= deadline) return { status: data.status, errors: (data.triggers ?? []).map((trigger) => trigger.errorMessage).filter(Boolean) };

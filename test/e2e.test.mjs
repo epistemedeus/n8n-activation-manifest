@@ -18,7 +18,8 @@ import { dirname, join } from 'node:path';
 import { after, before, test } from 'node:test';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
-import { apply } from '../apply-manifest.mjs';
+import { createServer } from 'node:http';
+import { apply, request } from '../apply-manifest.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const URLS = { test: process.env.TEST_URL ?? 'http://localhost:55689', prod: process.env.PROD_URL ?? 'http://localhost:55690' };
@@ -88,14 +89,23 @@ function docker(args, options = {}) {
 const compose = (args, options) => docker([...COMPOSE, ...args], options);
 // A workflow file "arrives": imported with the same id on the running instance,
 // unpublished. Only used for workflows the instance does not have yet.
-const arrive = (env, ...files) => {
+const arrive = async (env, ...files) => {
   for (const file of files) compose(['exec', '-T', env, 'n8n', 'import:workflow', `--input=/bootstrap/lab/later/${file}.json`]);
+  await ready(env);
 };
+
+// Every call of the tests goes through this: a connection that drops before
+// an answer came is tried again (the import above takes seconds, and n8n
+// closes idle keep-alive connections meanwhile).
+const http = (url, init) => request(url, init, 6);
+// n8n answers and says it is ready. Connection errors and the "starting up"
+// answer both mean: not yet.
+const ready = (env) => until(async () => (await fetch(`${URLS[env]}/healthz/readiness`, { signal: AbortSignal.timeout(5_000) })).status === 200, 180_000, `${env} to be ready`);
 
 // --- n8n ----------------------------------------------------------------------------
 
 const api = async (env, method, path, body) => {
-  const response = await fetch(`${URLS[env]}/api/v1${path}`, {
+  const response = await http(`${URLS[env]}/api/v1${path}`, {
     method,
     headers: { 'x-n8n-api-key': keys[env].harness, ...(body ? { 'content-type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
@@ -103,7 +113,7 @@ const api = async (env, method, path, body) => {
   return { status: response.status, body: await json(response) };
 };
 const rest = async (env, method, path, body, headers = { cookie: cookies[env] }) => {
-  const response = await fetch(`${URLS[env]}/rest${path}`, {
+  const response = await http(`${URLS[env]}/rest${path}`, {
     method,
     headers: { 'browser-id': 'lab', 'content-type': 'application/json', ...headers },
     body: body ? JSON.stringify(body) : undefined,
@@ -122,7 +132,7 @@ const activeIds = async (env) => Object.entries(await active(env)).filter(([, on
 
 // What the lab webhook says: { status, workflow, version }.
 async function called(env, slug) {
-  const response = await fetch(`${URLS[env]}/webhook/lab/${slug}`);
+  const response = await http(`${URLS[env]}/webhook/lab/${slug}`);
   const body = await json(response);
   return { status: response.status, workflow: body.workflow, version: body.version };
 }
@@ -174,18 +184,17 @@ function cliAs(instance, env, document, ...args) {
 
 // The apply workflow, over its webhook.
 async function webhook(env, body, token = TOKEN) {
-  const response = await fetch(`${URLS[env]}/webhook/activation-manifest/apply`, {
+  const response = await http(`${URLS[env]}/webhook/activation-manifest/apply`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...(token ? { 'x-apply-token': token } : {}) },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(60_000),
   });
   return { status: response.status, body: await json(response) };
 }
 
 before(async () => {
   for (const env of ['test', 'prod']) {
-    await until(async () => (await fetch(`${URLS[env]}/healthz/readiness`)).status === 200, 180_000, `${env} to be ready`);
+    await ready(env);
 
     // Owner and API keys through n8n's own endpoints, the ones the first-run
     // screen and Settings > n8n API use.
@@ -206,6 +215,7 @@ before(async () => {
     keys[env].tool = tool.body.data.rawApiKey;
     const credential = [{ id: 'amN8nApiKey00001', name: 'Activation manifest n8n API key', type: 'n8nApi', data: { apiKey: keys[env].tool, baseUrl: 'http://127.0.0.1:5678/api/v1' } }];
     compose(['exec', '-T', env, 'sh', '-c', 'cat > /tmp/credential.json && n8n import:credentials --input=/tmp/credential.json && rm /tmp/credential.json'], { input: JSON.stringify(credential) });
+    await ready(env);
   }
 });
 
@@ -338,8 +348,8 @@ test('a workflow switched on by hand that the manifest does not list is switched
 });
 
 test('a newly arrived workflow stays off on both until the manifest lists it', async () => {
-  arrive('test', 'invoice-export');
-  arrive('prod', 'invoice-export');
+  await arrive('test', 'invoice-export');
+  await arrive('prod', 'invoice-export');
   for (const env of ['test', 'prod']) {
     const report = await run(env);
     assert.equal(rowOf(report, INVOICES).status, 'unlisted');
@@ -396,7 +406,7 @@ test('a manifest with a mistake is refused as a whole, and a listed workflow tha
 });
 
 test('an activation the API refuses is reported with its reason, and the rest is still applied', async () => {
-  arrive('prod', 'broken-no-trigger', 'broken-missing-credential', 'order-intake-next');
+  await arrive('prod', 'broken-no-trigger', 'broken-missing-credential', 'order-intake-next');
   manifest.workflows[NO_TRIGGER] = { prod: 'active' };
   manifest.workflows[NO_CREDENTIAL] = { prod: 'active' };
   // Same webhook path as Order intake, which stays active: a conflict.
@@ -445,7 +455,7 @@ test('one workflow hands its webhook path to another in a single run: unpublish 
 });
 
 test('a trigger that fails after the API said 200: only --check-triggers sees it', async () => {
-  arrive('prod', 'broken-cron', 'broken-unreachable');
+  await arrive('prod', 'broken-cron', 'broken-unreachable');
   manifest.workflows[BAD_CRON] = { prod: 'active' };
   manifest.workflows[UNREACHABLE] = { prod: 'active' };
 
@@ -461,7 +471,7 @@ test('a trigger that fails after the API said 200: only --check-triggers sees it
   finding('Publish a workflow whose trigger cannot reach its server (Redis on a closed port)', 'public API: 200, active true, activeVersionId set');
 
   // The editor's own status route knows better. An API key cannot read it.
-  const withKey = await fetch(`${URLS.prod}/rest/workflows/${BAD_CRON}/publication-status`, { headers: { 'x-n8n-api-key': keys.prod.harness } });
+  const withKey = await http(`${URLS.prod}/rest/workflows/${BAD_CRON}/publication-status`, { headers: { 'x-n8n-api-key': keys.prod.harness } });
   assert.equal(withKey.status, 401);
   finding('GET /rest/workflows/{id}/publication-status with an API key', `${withKey.status}`);
 
@@ -556,7 +566,7 @@ test('match by name: same result, and a name that two workflows share is refused
   assert.equal(same.summary.changed, 0);
   assert.equal(same.summary.inSync, (await run('prod')).summary.inSync);
 
-  arrive('prod', 'same-name-1', 'same-name-2');
+  await arrive('prod', 'same-name-1', 'same-name-2');
   byName.workflows.Twin = { prod: 'active' };
   const stateBefore = await active('prod');
   const twins = await run('prod', byName);
@@ -626,7 +636,7 @@ test('the apply workflow: token, environment check, dry run by default, apply, n
   assert.equal(rowOf(failed.body, GHOST).status, 'missing');
 
   // A webhook path changes hands in one call, as with the command line.
-  arrive('test', 'order-intake-next');
+  await arrive('test', 'order-intake-next');
   document.workflows[ORDERS].test = 'inactive';
   document.workflows[ORDERS_NEXT] = { test: 'active' };
   delete document.workflows[GHOST];
@@ -636,10 +646,46 @@ test('the apply workflow: token, environment check, dry run by default, apply, n
   await live('test', 'orders', { workflow: 'orders-next' });
 
   // A refused publish comes back through the workflow with n8n's reason.
-  arrive('test', 'broken-no-trigger');
+  await arrive('test', 'broken-no-trigger');
   document.workflows[NO_TRIGGER] = { test: 'active' };
   const refused = await webhook('test', { environment: 'test', dryRun: false, manifest: document });
   assert.equal(refused.status, 409);
   assert.equal(rowOf(refused.body, NO_TRIGGER).result, 'failed');
   assert.match(rowOf(refused.body, NO_TRIGGER).error, /^HTTP 400: .*no trigger node/);
+});
+
+test('a connection that drops before the answer is tried again; an HTTP error is not', async () => {
+  // A stand-in for the API that closes the first connection of every request
+  // without answering, the way an idle keep-alive connection ends.
+  const seen = {};
+  const server = createServer((req, res) => {
+    const key = `${req.method} ${req.url.split('?')[0]}`;
+    seen[key] = (seen[key] ?? 0) + 1;
+    if (seen[key] === 1) return req.socket.destroy();
+    res.setHeader('content-type', 'application/json');
+    if (key === 'GET /api/v1/workflows') {
+      const on = seen['POST /api/v1/workflows/one/publish'] >= 2;
+      return res.end(JSON.stringify({ data: [{ id: 'one', name: 'One', active: on, versionId: 'v', activeVersionId: on ? 'v' : null }], nextCursor: null }));
+    }
+    if (key === 'POST /api/v1/workflows/one/publish') return res.end(JSON.stringify({ id: 'one' }));
+    res.statusCode = 500;
+    res.end(JSON.stringify({ message: 'no' }));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const url = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const report = await apply({ manifest: { environments: ['prod'], workflows: { one: { prod: 'active' } } }, env: 'prod', url, apiKey: 'k' });
+    assert.equal(report.ok, true, JSON.stringify(report.rows));
+    assert.equal(report.rows[0].result, 'applied');
+    assert.equal(seen['POST /api/v1/workflows/one/publish'], 2, 'dropped once, sent again once');
+    assert.ok(seen['GET /api/v1/workflows'] >= 3);
+
+    // A 500 is an answer: no second try.
+    const failed = await request(`${url}/other`, {}, 4);
+    assert.equal(failed.status, 500);
+    assert.equal(seen['GET /other'], 2);
+  } finally {
+    server.close();
+    server.closeAllConnections();
+  }
 });

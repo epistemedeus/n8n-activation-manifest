@@ -123,7 +123,7 @@ prod
   amInvoices000001   Invoice export               inactive → inactive not in the manifest, inactive
 ```
 
-A failed call does not stop the run: the rest is applied and the exit code is 1. A workflow listed as active that is not on the instance, or is archived, also gives 1.
+A failed call does not stop the run: the rest is applied and the exit code is 1. A call whose connection drops before any answer came (n8n closing an idle connection, a proxy restarting) is sent again, up to three more times; an HTTP error or a timeout is not. A workflow listed as active that is not on the instance, or is archived, also gives 1.
 
 **`--check-triggers`** covers the two 200-but-broken cases above. It needs `N8N_EMAIL` and `N8N_PASSWORD` of a user who can see the workflows, logs in, and reads the editor's `publication-status` for every workflow that should be active, waiting up to `--wait` seconds (default 30) for ones still starting. Anything but `published` fails the run with n8n's error text. This route is not part of the public API and may change; without the option the tool only knows what the public API says.
 
@@ -168,7 +168,7 @@ After changing `apply-manifest.mjs` or `scripts/build.mjs`, run `npm run build` 
 
 ## What was tested
 
-`npm run test:e2e` from a fresh stack, two instances of n8n 2.47.7, regular mode, SQLite: **16 of 16 passed**.
+`npm run test:e2e` from a fresh stack, two instances of n8n 2.47.7, regular mode, SQLite: **17 of 17 passed**.
 
 | Test                                                                                                                 | Result |
 | -------------------------------------------------------------------------------------------------------------------- | ------ |
@@ -188,6 +188,7 @@ After changing `apply-manifest.mjs` or `scripts/build.mjs`, run `npm run build` 
 | Match by name: same result; a shared name is refused; an archived workflow is reported                               | passed |
 | Paging: two workflows per request gives the same plan                                                                | passed |
 | The apply workflow: 403, wrong environment 400, dry run, apply, path handover, 409 with n8n's reason, keeps itself   | passed |
+| A connection dropped before the answer: the call is sent again and the run succeeds; a 500 is not repeated           | passed |
 
 ## What was not tested, and other limits
 
