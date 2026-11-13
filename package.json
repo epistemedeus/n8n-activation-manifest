@@ -1,0 +1,15 @@
+{
+  "name": "n8n-activation-manifest",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Keeps which n8n workflows are active per environment in one file in Git and applies it after each pull, through the public API",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test:e2e": "node scripts/e2e.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

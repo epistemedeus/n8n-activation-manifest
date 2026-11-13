@@ -1,0 +1,46 @@
+# Two n8n instances that stand in for TEST and PROD. Both import the same
+# workflow files with the same ids, the way a Git pull keeps ids, and nothing
+# but the apply workflow is published.
+#   cp .env.example .env   (fill it in)   then   docker compose up -d
+# Then follow "Try it locally" in the README: the tool needs an n8n API key
+# per instance, and only a logged-in owner can create one.
+# Already have your instances? You do not need this file: see "Add it to your
+# n8n" in the README.
+
+x-n8n: &n8n
+  image: ${N8N_IMAGE:-n8nio/n8n:2.47.7}
+  restart: unless-stopped
+  entrypoint: ["sh", "/bootstrap/docker/bootstrap.sh"]
+
+services:
+  test:
+    <<: *n8n
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
+      ENVIRONMENT: test
+      APPLY_TOKEN: ${APPLY_TOKEN:?set APPLY_TOKEN in .env}
+    volumes:
+      - test_data:/home/node/.n8n
+      - ./workflows:/bootstrap/workflows:ro
+      - ./lab:/bootstrap/lab:ro
+      - ./docker:/bootstrap/docker:ro
+    ports:
+      - "${TEST_PORT:-5678}:5678"
+
+  prod:
+    <<: *n8n
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
+      ENVIRONMENT: prod
+      APPLY_TOKEN: ${APPLY_TOKEN:?set APPLY_TOKEN in .env}
+    volumes:
+      - prod_data:/home/node/.n8n
+      - ./workflows:/bootstrap/workflows:ro
+      - ./lab:/bootstrap/lab:ro
+      - ./docker:/bootstrap/docker:ro
+    ports:
+      - "${PROD_PORT:-5679}:5678"
+
+volumes:
+  test_data:
+  prod_data:

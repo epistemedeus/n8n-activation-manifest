@@ -1,0 +1,70 @@
+{
+  "name": "Invoice export",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "lab/invoices",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "2d051e7e-9ecf-4899-8afc-ccdf1342f48d",
+      "name": "Called",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        0
+      ],
+      "webhookId": "caa0b697-7ff7-4c8c-8ca6-a7979310076d"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1e80827-85cc-443b-81e5-27db4fd56cdd",
+              "name": "workflow",
+              "value": "invoices",
+              "type": "string"
+            },
+            {
+              "id": "75ea631d-1dcb-4360-8970-188fc3f34e40",
+              "name": "version",
+              "value": "v1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b926f133-65b6-4291-8ec9-f8c125564a1a",
+      "name": "Answer",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Called": {
+      "main": [
+        [
+          {
+            "node": "Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "id": "amInvoices000001",
+  "active": false
+}

@@ -1,0 +1,101 @@
+{
+  "name": "Daily reconciliation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "lab/reconcile",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "5be5f8c6-867b-4ef9-8812-0ea744ef6f67",
+      "name": "Called",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        0
+      ],
+      "webhookId": "0e4f1db3-78ee-4e37-8db8-213050dd47b3"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 3 * * *"
+            }
+          ]
+        }
+      },
+      "id": "c95178c0-dffe-4ddd-8a6b-5b3f526edb0d",
+      "name": "Every night",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -260,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1d75591f-25af-47d8-8e1f-be612e91c1ca",
+              "name": "workflow",
+              "value": "reconcile",
+              "type": "string"
+            },
+            {
+              "id": "2edeedb8-c85b-40de-8424-ff7b923f0d30",
+              "name": "version",
+              "value": "v1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "047f7078-f87c-4786-86b5-7d66e65b0aab",
+      "name": "Answer",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Called": {
+      "main": [
+        [
+          {
+            "node": "Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every night": {
+      "main": [
+        [
+          {
+            "node": "Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "id": "amReconcile00001",
+  "active": false
+}

@@ -1,0 +1,51 @@
+{
+  "name": "Broken: no trigger",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "0607fd35-1cf1-4ef5-82f6-be05fc7e55c5",
+      "name": "Run by hand",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": []
+        },
+        "options": {}
+      },
+      "id": "8b167e83-d500-4104-821c-54fc558a3cf0",
+      "name": "Answer",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Run by hand": {
+      "main": [
+        [
+          {
+            "node": "Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "id": "amNoTrigger00001",
+  "active": false
+}

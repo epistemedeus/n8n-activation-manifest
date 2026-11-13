@@ -1,0 +1,70 @@
+{
+  "name": "Twin",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "lab/twin-2",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "11fb1f7e-c02a-440c-812d-25acfa83b7b6",
+      "name": "Called",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        0
+      ],
+      "webhookId": "c211bbef-8716-465f-83f4-eae438044059"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "11f4c19b-e8e5-4c5d-85d9-ed680fc01a59",
+              "name": "workflow",
+              "value": "twin-2",
+              "type": "string"
+            },
+            {
+              "id": "97f23113-3966-404b-8560-4baea0cb0389",
+              "name": "version",
+              "value": "v1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "73adf699-7393-4c0f-8e55-bda002e2c60d",
+      "name": "Answer",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Called": {
+      "main": [
+        [
+          {
+            "node": "Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "id": "amTwinTwo0000001",
+  "active": false
+}

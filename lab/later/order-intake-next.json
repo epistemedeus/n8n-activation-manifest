@@ -1,0 +1,70 @@
+{
+  "name": "Order intake (next)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "lab/orders",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "b87d96e8-00a4-41e8-8abe-39519f92f695",
+      "name": "Called",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        0
+      ],
+      "webhookId": "280c363f-dd5e-4842-863e-f3e7bcf16e60"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "33ef07e6-d30c-40d9-86a0-cf4c36092d29",
+              "name": "workflow",
+              "value": "orders-next",
+              "type": "string"
+            },
+            {
+              "id": "58a39e7d-975d-410c-8eec-661d589fe734",
+              "name": "version",
+              "value": "v1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3b3bfbb3-011d-4554-899a-661dc50adec5",
+      "name": "Answer",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Called": {
+      "main": [
+        [
+          {
+            "node": "Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "id": "amOrdersNext0001",
+  "active": false
+}

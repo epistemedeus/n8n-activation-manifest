@@ -1,0 +1,70 @@
+{
+  "name": "WIP experiment",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "lab/wip",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "d8b16b9e-092d-43a3-83f5-0916a38ebe4b",
+      "name": "Called",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        0
+      ],
+      "webhookId": "98120826-a29e-46ef-8e78-59e36bad08b1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f4887521-5446-470c-8423-ff0cef707b05",
+              "name": "workflow",
+              "value": "wip",
+              "type": "string"
+            },
+            {
+              "id": "2c4194fd-e8b2-4ba6-8c63-7eb9c512c2ff",
+              "name": "version",
+              "value": "v1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c2f1effb-8106-429f-8cd1-6d55625b9d36",
+      "name": "Answer",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Called": {
+      "main": [
+        [
+          {
+            "node": "Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "id": "amWip00000000001",
+  "active": false
+}

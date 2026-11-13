@@ -1,0 +1,60 @@
+{
+  "name": "Broken: trigger cannot reach its server",
+  "nodes": [
+    {
+      "parameters": {
+        "channels": "lab",
+        "options": {}
+      },
+      "id": "ee564f60-d42c-44c4-8c0b-590d8f72ffab",
+      "name": "New message",
+      "type": "n8n-nodes-base.redisTrigger",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        0
+      ],
+      "credentials": {
+        "redis": {
+          "id": "amRedisNowhere01",
+          "name": "Activation manifest lab Redis (nowhere)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": []
+        },
+        "options": {}
+      },
+      "id": "16346408-bff5-407a-8f97-cad96f154c36",
+      "name": "Answer",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "New message": {
+      "main": [
+        [
+          {
+            "node": "Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "id": "amUnreachable001",
+  "active": false
+}

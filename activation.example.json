@@ -1,0 +1,10 @@
+{
+  "environments": ["test", "prod"],
+  "default": "inactive",
+  "workflows": {
+    "amApply000000001": { "name": "Apply activation manifest", "test": "active", "prod": "active" },
+    "amOrders00000001": { "name": "Order intake", "test": "active", "prod": "active" },
+    "amReconcile00001": { "name": "Daily reconciliation", "prod": "active" },
+    "amSmoke000000001": { "name": "Smoke test", "test": "active", "prod": "inactive" }
+  }
+}

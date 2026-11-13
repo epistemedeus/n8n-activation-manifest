@@ -1,0 +1,70 @@
+{
+  "name": "Smoke test",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "lab/smoke",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "affb515e-4410-46fa-8ce4-64bb861b49f5",
+      "name": "Called",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        0
+      ],
+      "webhookId": "3168c112-bc22-41d9-89a7-72d40009f026"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2cc9b501-00af-4e06-8765-eca881bc7ac0",
+              "name": "workflow",
+              "value": "smoke",
+              "type": "string"
+            },
+            {
+              "id": "0507b436-25ad-4ec5-8ef4-6e253a944c15",
+              "name": "version",
+              "value": "v1",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "408dd54c-fbf0-4a6e-8701-acd421d8eb37",
+      "name": "Answer",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Called": {
+      "main": [
+        [
+          {
+            "node": "Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "id": "amSmoke000000001",
+  "active": false
+}
